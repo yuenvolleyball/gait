@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>通用網址 iframe Viewer</title>
+
+  <!-- 基本保護：不要亂猜 MIME type -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <!-- 對外連線不帶 referrer，避免洩漏完整網址 -->
+  <meta name="referrer" content="no-referrer">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at top, #1e293b, #020617);
+      color: #e5e7eb;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 960px;
+      padding: 24px 20px 28px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.93);
+      border-radius: 18px;
+      padding: 18px 18px 20px;
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(148, 163, 184, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 6px;
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .url-label {
+      font-size: 13px;
+      color: #cbd5f5;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+
+    .url-input {
+      flex: 1 1 260px;
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .url-input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.7);
+    }
+
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition:
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        background 0.15s ease-out,
+        opacity 0.15s ease-out;
+      box-shadow:
+        0 8px 18px rgba(15, 23, 42, 0.7),
+        0 0 0 1px rgba(148, 163, 184, 0.45);
+      outline: none;
+      white-space: nowrap;
+      background: linear-gradient(135deg, #3b82f6, #22c1c3);
+      color: #f9fafb;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 14px 26px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(191, 219, 254, 0.8);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 4px 10px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(59, 130, 246, 0.9);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .current-url {
+      max-width: 100%;
+      word-break: break-all;
+    }
+
+    .hint {
+      opacity: 0.8;
+    }
+
+    .viewer-wrapper {
+      margin-top: 8px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: #020617;
+    }
+
+    #viewer {
+      width: 100%;
+      height: 70vh;
+      border: none;
+      background: #020617;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <h1 class="title">通用網址 iframe Viewer</h1>
+      <div class="subtitle">輸入一個網址，下面會嘗試用 iframe 載入（部分網站可能因安全設定無法顯示）。</div>
+
+      <form id="urlForm" class="form-row">
+        <label class="url-label" for="urlInput">目標網址：</label>
+        <input
+          id="urlInput"
+          class="url-input"
+          type="text"
+          placeholder="例如：https://yucheese.github.io/assistant/chat_ui_with_voice.html"
+          autocomplete="off">
+        <button class="btn" type="submit">載入</button>
+      </form>
+
+      <div class="info-row">
+        <div>
+          目前載入：
+          <span id="currentUrl" class="current-url">（尚未載入）</span>
+        </div>
+        <div class="hint">
+          若畫面空白或錯誤，通常是對方網站禁止被 iframe 嵌入。
+        </div>
+      </div>
+
+      <div class="viewer-wrapper">
+        <!-- 這裡顯示被載入的外部頁面 -->
+        <iframe
+          id="viewer"
+          src=""
+          frameborder="0"
+          referrerpolicy="no-referrer">
+          <!-- 如果瀏覽器不支援 iframe，會顯示這段 -->
+          你的瀏覽器似乎不支援 iframe。
+        </iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // 防止這個工具頁被嵌在別人的 iframe 裡（簡單 anti-clickjacking）
+    try {
+      if (window.top !== window.self) {
+        window.top.location = window.location;
+      }
+    } catch (e) {
+      // 跨網域時可能會丟錯，這裡略過即可
+    }
+
+    (function init() {
+      const form = document.getElementById("urlForm");
+      const input = document.getElementById("urlInput");
+      const iframe = document.getElementById("viewer");
+      const currentUrlSpan = document.getElementById("currentUrl");
+
+      function normalizeUrl(raw) {
+        if (!raw) return null;
+        let url = raw.trim();
+
+        // 如果沒有協議，自動補上 https://
+        if (!/^https?:\/\//i.test(url)) {
+          url = "https://" + url;
+        }
+
+        try {
+          const u = new URL(url);
+
+          // 只接受 http / https，避免奇怪的協議（javascript:, data: 等）
+          if (u.protocol !== "http:" && u.protocol !== "https:") {
+            return null;
+          }
+          return u.toString();
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function loadUrl(raw) {
+        const normalized = normalizeUrl(raw);
+        if (!normalized) {
+          alert("網址格式怪怪的，請確認是否填寫正確（需為 http 或 https）。");
+          return;
+        }
+
+        currentUrlSpan.textContent = normalized;
+        iframe.src = normalized;
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        loadUrl(input.value);
+      });
+
+      // 你可以在這裡設定預設載入的網址（不想要就註解掉這兩行）
+      const defaultUrl = "https://yucheese.github.io/assistant/chat_ui_with_voice.html";
+      input.value = defaultUrl;
+      loadUrl(defaultUrl);
+    })();
+  </script>
+</body>
+</html>
+
